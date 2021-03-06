@@ -10,7 +10,7 @@ from gen_Word2Vev import generate_word2vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 import logging
 import pandas as pd
-from KaggleAverageVector import getAvgFeatureVecs, getCleanReviews, getDocFeatureVec
+from KaggleVectorize import getAvgFeatureVecs, getCleanReviews, getDocFeatureVec
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',\
     level=logging.INFO)
