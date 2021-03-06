@@ -10,7 +10,7 @@ from gen_Word2Vev import generate_word2vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 import logging
 import pandas as pd
-from KaggleAverageVector import getAvgFeatureVecs, getCleanReviews
+from KaggleAverageVector import getAvgFeatureVecs, getCleanReviews, getDocFeatureVec
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',\
     level=logging.INFO)
@@ -62,16 +62,28 @@ else:
         print("Could't load Doc2Vec, BUILDING...")
         doc2vec_model = generate_doc2vec(doc2vec_name, datasets)
         
-# Step 3 Gather Word2Vec Features
+# Step 3 Gather Features
 print("FEATURIZING")
-xTrain = getAvgFeatureVecs(getCleanReviews(dataset_A), word2vec_model, NUM_FEATURES)
-xTrain = torch.tensor(xTrain)
+
+# Labels 
 yTrain = torch.Tensor([y_val for y_val in dataset_A["sentiment"]])
 
-# Step 5 Training NN model
+# Get word2vec
+xTrain = getAvgFeatureVecs(getCleanReviews(dataset_A), word2vec_model, NUM_FEATURES)
+xTrain = torch.tensor(xTrain)
+
+# Get doc2vec
+xTrainDoc = getDocFeatureVec(getCleanReviews(dataset_A), doc2vec_model, NUM_FEATURES)
+xTrainDoc = torch.tensor(xTrain)
+
+# Step 4 Training NN model
 print("TRAINING nn model")
 l_model = nn_model.NeuralNetwork()
-l_model.train_model_persample(xTrain, yTrain)
-yValidatePredicted = l_model.predict(xTrain)
+l_model.train_model_persample(xTrainDoc, yTrain)
+yValidatePredicted = l_model.predict(xTrainDoc)
 
 print(yValidatePredicted)
+
+# Step 5 Evaluate performance
+training_accuracy = nn_tools.Accuracy(yTrain, yValidatePredicted)
+print(training_accuracy)

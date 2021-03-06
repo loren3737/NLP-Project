@@ -81,6 +81,29 @@ def getAvgFeatureVecs(reviews, model, num_features):
        counter = counter + 1.
     return reviewFeatureVecs
 
+def getDocFeatureVec(reviews, model, num_features):
+    # Given a set of reviews (each one a list of words), calculate
+    # the average feature vector for each one and return a 2D numpy array
+    
+    # Initialize a counter
+    counter = 0.
+    
+    # Preallocate a 2D numpy array, for speed
+    reviewFeatureVecs = np.zeros((len(reviews),num_features),dtype="float32")
+
+    # Loop through the reviews
+    for review in reviews:
+       
+       # Print a status message every 1000th review
+        if counter%1000. == 0.:
+            print("Review %d of %d" % (counter, len(reviews)))
+       
+        reviewFeatureVecs[int(counter)] = model.infer_vector(review)
+       
+        # Increment the counter
+        counter = counter + 1.
+    return reviewFeatureVecs
+
 
 def getCleanReviews(reviews, useSmall=False):
     clean_reviews = []

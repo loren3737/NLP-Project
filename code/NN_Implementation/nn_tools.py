@@ -1,28 +1,30 @@
-# import torch
-# import nltk
-# from KaggleWord2VecUtility import KaggleWord2VecUtility
+# Baseline metrics
 
-# def parse_as_w2v(dataset, word2vec_model):
+def __CheckEvaluationInput(y, yPredicted):
+    # Check sizes
+    if(len(y) != len(yPredicted)):
+        raise UserWarning("Attempting to evaluate between the true labels and predictions.\n   Arrays contained different numbers of samples. Check your work and try again.")
 
-#     xData = []
-#     yData = []
+    # Check values
+    valueError = False
+    for value in y:
+        if value not in [0, 1]:
+            valueError = True
+    for value in yPredicted:
+        if value not in [0, 1]:
+            valueError = True
 
-#     tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+    if valueError:
+        raise UserWarning("Attempting to evaluate between the true labels and predictions.\n   Arrays contained unexpected values. Must be 0 or 1.")
 
-#     # for review in dataset["review"]:
-#     #     xData += KaggleWord2VecUtility.review_to_sentences(review, tokenizer)
-#     # for sent in dataset["sentiment"]:
-#     #     yData += [sent]
+def Accuracy(y, yPredicted):
+    __CheckEvaluationInput(y, yPredicted)
 
-#     for review in dataset["review"][0:200]:
-#         xData += KaggleWord2VecUtility.review_to_sentences(review, tokenizer)
-#     for sent in dataset["sentiment"][0:200]:
-#         yData += [sent]
+    correct = []
+    for i in range(len(y)):
+        if(y[i] == yPredicted[i]):
+            correct.append(1)
+        else:
+            correct.append(0)
 
-#     for word in xData:
-#         if word in word2vec_model.wv
-#             embedding = word2vec_model.wv[word]
-
-#     xTensor = torch.Tensor([ xData for xData in xData ])
-#     yTensor = torch.Tensor([ yData for yData in dataset["sentiment"] ])
-#     return xTensor, yTensor
+    return sum(correct)/len(correct)
