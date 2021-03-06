@@ -5,10 +5,10 @@ import nltk.data
 import pandas as pd
 
 # Set values for various parameters. We may wanna tune these
-NUM_FEATURES = 300    # Word vector dimensionality
+NUM_FEATURES = 100    # Word vector dimensionality
 MIN_WORD_COUNT = 40   # Minimum word count
 NUM_WORKERS = 4       # Number of threads to run in parallel
-CONTEXT = 10          # Context window size
+CONTEXT = 5          # Context window size
 
 def generate_doc2vec(model_name, dataset_list):
 
