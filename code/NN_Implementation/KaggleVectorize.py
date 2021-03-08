@@ -81,6 +81,59 @@ def getAvgFeatureVecs(reviews, model, num_features):
        counter = counter + 1.
     return reviewFeatureVecs
 
+# TODO think through RNN input
+# def getFeatureVecs(reviews, model, num_features):
+#     # Given a set of reviews (each one a list of words), calculate
+#     # the feature vector for each one return a numpy array
+    
+#     index2word_set = set(model.wv.index2word)
+#     # Initialize a counter
+#     counter = 0.
+#     #
+#     # Preallocate a 2D numpy array, for speed
+#     # reviewFeatureVecs = np.zeros((len(reviews),num_features),dtype="float32")
+#     # Try each review as a list of tensors
+#     Reviews = []
+#     #
+#     # Loop through the reviews
+#     for review in reviews:
+
+#         # Print a status message every 1000th review
+#         if counter%1000. == 0.:
+#             print("Review %d of %d" % (counter, len(reviews)))
+        
+#         FeatureVecs = []
+
+#         featureVec = np.zeros((num_features,),dtype="float32")
+        
+#         # Loop over each word in the review and, if it is in the model's
+#         # vocaublary, add its feature vector to the total
+#         for word in review:
+#             if word in index2word_set:
+#                 nwords = nwords + 1.
+#                 featureVecCopy = np.add(featureVec,model[word])
+       
+
+#        #
+#        # Call the function (defined above) that makes average feature vectors
+#        reviewFeatureVecs[int(counter)] = makeFeatureVec(review, model, \
+#            num_features)
+#        #
+#        # Increment the counter
+#        counter = counter + 1.
+
+#     # Function to average all of the word vectors in a given
+#     # paragraph
+#     #
+    
+#     #
+#     # Divide the result by the number of words to get the average
+#     featureVec = np.divide(featureVec,nwords)
+#     return featureVec
+
+
+#     return reviewFeatureVecs
+
 def getDocFeatureVec(reviews, model, num_features):
     # Given a set of reviews (each one a list of words), calculate
     # the average feature vector for each one and return a 2D numpy array
