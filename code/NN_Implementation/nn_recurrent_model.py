@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 import time
 import math
 
@@ -10,10 +11,10 @@ def timeSince(since):
             return '%dm %ds' % (m, s)
 
 class RNN(nn.Module):
-    def __init__(self, input_size, hidden1, hidden2, layer1, layer2, output_size):
+    def __init__(self, input_size, hidden1=20, hidden2=10, layer1=20, layer2=10):
         super(RNN, self).__init__()
 
-        self.initialHidden = hidden1
+        self.initialHidden = input_size
 
         self.RecurrentOne = nn.RNN(input_size, hidden1, layer1)
         self.RecurrentTwo = nn.RNN(layer1, hidden2, layer2)
@@ -25,21 +26,21 @@ class RNN(nn.Module):
     def forward(self, input_tensor, hide=None):
 
         if hide is None:
-            hide = torch.zeros(1, self.initHidden)
+            # TODO fix the size sof this
+            hide = torch.zeros(1, self.initialHidden)
         
         out, hide = self.RecurrentOne(input_tensor, hide)
         out, hide = self.RecurrentTwo(out, hide)
         out, hide = self.RecurrentOutput(out, hide)
         return out, hide
 
-    def train_sentence(self, sentence_features, sentiment, learning_rate):
+    def train_word(self, feature_vector, sentiment, learning_rate):
 
         self.zero_grad()
         hidden = None
         lossFunction = torch.nn.MSELoss(reduction='mean')
 
-        for i in range(sentence_features.size()[0]):
-            output, hidden = self(sentence_features[i], hidden)
+        output, hidden = self(feature_vector, hidden)
 
         loss = lossFunction(output, sentiment)
         loss.backward()
@@ -62,8 +63,9 @@ class RNN(nn.Module):
         start = time.time()
 
         for iter in range(1, epochs + 1):
-            for index, sentence_features in xTrain:
+            for index, review in enumerate(xTrain):
                 sentiment = yTrain[index]
-
-                output, loss = train_sentence(sentence_features, sentiment)
-                current_loss += loss
+                for word_vector in review:
+                    feature_vector = torch.tensor(word_vector)
+                    output, loss = self.train_word(feature_vector, sentiment, learning_rate)
+                    current_loss += loss

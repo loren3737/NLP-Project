@@ -1,8 +1,7 @@
-import time
+# import time
 import numpy
 import torch 
-import nn_model
-import nn_tools
+import nn_model, nn_recurrent_model, nn_tools
 import KaggleWord2VecUtility
 from gensim.models import Word2Vec
 from gen_Doc2Vec import generate_doc2vec
@@ -20,7 +19,7 @@ generate_embedding_word = False
 generate_embedding_doc = False
 word2vec_name = "300features_40minwords_10context"
 doc2vec_name = "doc2vec_300features_40minwords_10context"
-NUM_FEATURES = 100
+NUM_FEATURES = 300
 #####################################
 
 print()
@@ -72,25 +71,24 @@ yTrain = torch.Tensor([y_val for y_val in dataset_A["sentiment"]])
 yDev = torch.Tensor([y_val for y_val in dataset_B["sentiment"]])
 
 # Get word2vec
-xTrain = getAvgFeatureVecs(getCleanReviews(dataset_A), word2vec_model, NUM_FEATURES)
-xTrain = torch.tensor(xTrain)
+xTrain = getFeatureVec(getCleanReviews(dataset_A), word2vec_model, NUM_FEATURES)
 
 # Step 4 Training NN model
 print("TRAINING nn model")
-l_model = nn_model.NeuralNetwork(input_nodes=NUM_FEATURES)
-l_model.train_model_persample(xTrainDoc, yTrain)
-yTrainingPredicted = l_model.predict(xTrainDoc)
+r_model = nn_recurrent_model.RNN(input_size=NUM_FEATURES)
+r_model.train(xTrain, yTrain)
+# yTrainingPredicted = r_model.predict(xTrainDoc)
 
-print(yTrainingPredicted)
+# print(yTrainingPredicted)
 
 # Step 5 Evaluate performance
-print()
-print("EVALUATION")
-training_accuracy = nn_tools.Accuracy(yTrain, yTrainingPredicted)
-print("Training Accuracy: " + str(training_accuracy))
+# print()
+# print("EVALUATION")
+# training_accuracy = nn_tools.Accuracy(yTrain, yTrainingPredicted)
+# print("Training Accuracy: " + str(training_accuracy))
 
-xDevDoc = getDocFeatureVec(getCleanReviews(dataset_B), doc2vec_model, NUM_FEATURES)
-xDevDoc = torch.tensor(xDevDoc)
-yValidatePredicted = l_model.predict(xDevDoc)
-dev_accuracy = nn_tools.Accuracy(yDev, yValidatePredicted)
-print("Development Accuracy: " + str(dev_accuracy))
+# xDevDoc = getDocFeatureVec(getCleanReviews(dataset_B), doc2vec_model, NUM_FEATURES)
+# xDevDoc = torch.tensor(xDevDoc)
+# yValidatePredicted = l_model.predict(xDevDoc)
+# dev_accuracy = nn_tools.Accuracy(yDev, yValidatePredicted)
+# print("Development Accuracy: " + str(dev_accuracy))
