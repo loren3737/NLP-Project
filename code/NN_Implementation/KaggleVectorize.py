@@ -142,14 +142,14 @@ def getDocFeatureVec(reviews, model, num_features):
     return reviewFeatureVecs
 
 
-def getCleanReviews(reviews, useSmall=False):
+def getCleanReviews(reviews, useSmall=False, remove_stopwords=True):
     clean_reviews = []
 
     if useSmall:
         for review in reviews["review"][0:200]:
-            clean_reviews.append( KaggleWord2VecUtility.review_to_wordlist( review, remove_stopwords=True ))
+            clean_reviews.append( KaggleWord2VecUtility.review_to_wordlist( review, remove_stopwords=remove_stopwords ))
         return clean_reviews
     else:
         for review in reviews["review"]:
-            clean_reviews.append( KaggleWord2VecUtility.review_to_wordlist( review, remove_stopwords=True ))
+            clean_reviews.append( KaggleWord2VecUtility.review_to_wordlist( review, remove_stopwords=remove_stopwords ))
         return clean_reviews
