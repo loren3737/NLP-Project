@@ -19,7 +19,7 @@ generate_embedding_word = False
 generate_embedding_doc = False
 word2vec_name = "300features_40minwords_10context"
 doc2vec_name = "doc2vec_300features_40minwords_10context"
-NUM_FEATURES = 300
+NUM_FEATURES = 100
 #####################################
 
 print()
@@ -71,24 +71,27 @@ yTrain = torch.Tensor([y_val for y_val in dataset_A["sentiment"]])
 yDev = torch.Tensor([y_val for y_val in dataset_B["sentiment"]])
 
 # Get word2vec
-xTrain = getFeatureVec(getCleanReviews(dataset_A), word2vec_model, NUM_FEATURES)
+# xTrain, xTrainLengths = getFeatureVec(getCleanReviews(dataset_A, useSmall=True), word2vec_model, NUM_FEATURES)
+# xTrain = torch.tensor(xTrain)
+
+# Get doc2vec
+xTrainDoc = getDocFeatureVec(getCleanReviews(dataset_A), doc2vec_model, NUM_FEATURES)
+xTrainDoc = torch.tensor(xTrainDoc)
 
 # Step 4 Training NN model
-print("TRAINING nn model")
+print("TRAINING recurrent nn model")
 r_model = nn_recurrent_model.RNN(input_size=NUM_FEATURES)
-r_model.train(xTrain, yTrain)
-# yTrainingPredicted = r_model.predict(xTrainDoc)
-
-# print(yTrainingPredicted)
+r_model.train(xTrainDoc, yTrain)
 
 # Step 5 Evaluate performance
-# print()
-# print("EVALUATION")
-# training_accuracy = nn_tools.Accuracy(yTrain, yTrainingPredicted)
-# print("Training Accuracy: " + str(training_accuracy))
+print()
+print("EVALUATION")
+yTrainingPredicted = r_model.predict(xTrainDoc)
+training_accuracy = nn_tools.Accuracy(yTrain, yTrainingPredicted)
+print("Training Accuracy: " + str(training_accuracy))
 
-# xDevDoc = getDocFeatureVec(getCleanReviews(dataset_B), doc2vec_model, NUM_FEATURES)
-# xDevDoc = torch.tensor(xDevDoc)
-# yValidatePredicted = l_model.predict(xDevDoc)
-# dev_accuracy = nn_tools.Accuracy(yDev, yValidatePredicted)
-# print("Development Accuracy: " + str(dev_accuracy))
+xDevDoc = getDocFeatureVec(getCleanReviews(dataset_B), doc2vec_model, NUM_FEATURES)
+xDevDoc = torch.tensor(xDevDoc)
+yValidatePredicted = r_model.predict(xDevDoc)
+dev_accuracy = nn_tools.Accuracy(yDev, yValidatePredicted)
+print("Development Accuracy: " + str(dev_accuracy))

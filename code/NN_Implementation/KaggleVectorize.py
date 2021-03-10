@@ -84,39 +84,40 @@ def getAvgFeatureVecs(reviews, model, num_features):
 def getFeatureVec(reviews, model, num_features):
     # Given a set of reviews (each one a list of words), calculate
     # the feature vector for each one return a list of numpy arrays
+    # padd with 0's
     
     # Initialize a counter
+    reviewLengths = []
     index2word_set = set(model.wv.index2word)
     counter = 0.
-    featureVec = np.zeros((num_features,),dtype="float32")
-   
-    # Try each review as a list of tensors
-    recurrent_features = []
-    #
-    # Loop through the reviews
+    max_sentence = 0
     for review in reviews:
+        reviewLengths.append(len(review))
+        if max_sentence < len(review):
+            max_sentence = len(review)
+
+    num_reviews = len(reviews)
+    num_words = max_sentence
+
+    featureArray = np.zeros((num_reviews, num_words, num_features),dtype="float32")
+    
+
+    # Loop through the reviews
+    for r_index, review in enumerate(reviews):
 
         # Print a status message every 1000th review
         if counter%1000. == 0.:
             print("Review %d of %d" % (counter, len(reviews)))
 
-        # Initialize the list of features
-        review_features = []
-        review_length = len(review)
-        for word in review:
-            review_features.append(featureVec.copy())
-
         # Determine feature vectors
-        for index, word in enumerate(review):
+        for w_index, word in enumerate(review):
             if word in index2word_set:
-                review_features[index] = np.add(review_features[index],model[word])
+                featureArray[r_index, w_index, :] = np.add(featureArray[r_index, w_index, :], model[word])
        
         # Increment the counter
         counter = counter + 1.
-
-        recurrent_features.append(review_features)
     
-    return recurrent_features
+    return featureArray, reviewLengths
 
 def getDocFeatureVec(reviews, model, num_features):
     # Given a set of reviews (each one a list of words), calculate

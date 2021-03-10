@@ -11,39 +11,47 @@ def timeSince(since):
             return '%dm %ds' % (m, s)
 
 class RNN(nn.Module):
-    def __init__(self, input_size, hidden1=20, hidden2=10, layer1=20, layer2=10):
+    def __init__(self, input_size, hidden_size=20, layer=1):
         super(RNN, self).__init__()
 
-        self.initialHidden = input_size
+        # Save dimensions
+        self.hidden_size = hidden_size
+        self.layer = layer
 
-        self.RecurrentOne = nn.RNN(input_size, hidden1, layer1)
-        self.RecurrentTwo = nn.RNN(layer1, hidden2, layer2)
-        self.RecurrentOutput = nn.RNN(layer2, 1, 1)
+        # RNN layer
+        self.RecurrentOne = nn.RNN(input_size, hidden_size, layer, batch_first=True)
+        torch.nn.init.normal_(self.RecurrentOne.weight_hh_l0, mean=0.0, std=0.01)
+        torch.nn.init.normal_(self.RecurrentOne.weight_ih_l0, mean=0.0, std=0.01)
+          
+        # Output layer
+        linearOut = torch.nn.Linear(hidden_size, 1)
+        torch.nn.init.normal_(linearOut.weight, mean=0.0, std=0.01)
+        self.outputLayer = torch.nn.Sequential(
+            linearOut,
+            torch.nn.Sigmoid()
+            )
 
-        # Not needed for binary output
-        # self.softmax = nn.LogSoftmax(dim=1)
-
-    def forward(self, input_tensor, hide=None):
-
-        if hide is None:
-            # TODO fix the size sof this
-            hide = torch.zeros(1, self.initialHidden)
+    def forward(self, xReview):
         
-        out, hide = self.RecurrentOne(input_tensor, hide)
-        out, hide = self.RecurrentTwo(out, hide)
-        out, hide = self.RecurrentOutput(out, hide)
-        return out, hide
+        hidden0 = torch.zeros(self.layer, 1, self.hidden_size)
+        
+        X, hidden = self.RecurrentOne(xReview, hidden0)
 
-    def train_word(self, feature_vector, sentiment, learning_rate):
+        X = self.outputLayer(X)
+        
+        # X = X.view(batch_size, seq_len, self.nb_tags)
+        Y_hat = X
+        return Y_hat
+
+    def train_review(self, xReview, sentiment, learning_rate):
 
         self.zero_grad()
-        hidden = None
         lossFunction = torch.nn.MSELoss(reduction='mean')
 
-        output, hidden = self(feature_vector, hidden)
+        output = self(xReview)
 
         loss = lossFunction(output, sentiment)
-        loss.backward()
+        loss.backward(retain_graph=True)
 
         # Add parameters' gradients to their values, multiplied by learning rate
         for p in self.parameters():
@@ -51,8 +59,8 @@ class RNN(nn.Module):
 
         return output, loss.item()
 
-    def train(self, xTrain, yTrain, learning_rate=0.1, epochs = 5):
-        
+    def train(self, xTrain, yTrain, learning_rate=0.1, epochs = 20):
+        torch.autograd.set_detect_anomaly(True)
         # Metrics
         print_every = 5000
         plot_every = 1000
@@ -62,10 +70,34 @@ class RNN(nn.Module):
         all_losses = []
         start = time.time()
 
+        # Training
+        optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate)
+        lossFunction = torch.nn.MSELoss(reduction='mean')
+        xTrain = xTrain.unsqueeze(0)
+        yTrain = yTrain.unsqueeze(1)
+        yTrain = yTrain.unsqueeze(0)
+
         for iter in range(1, epochs + 1):
-            for index, review in enumerate(xTrain):
-                sentiment = yTrain[index]
-                for word_vector in review:
-                    feature_vector = torch.tensor(word_vector)
-                    output, loss = self.train_word(feature_vector, sentiment, learning_rate)
-                    current_loss += loss
+            print("Training Epoch : " + str(iter))
+            y_hat = self(xTrain)
+
+            trainLoss = lossFunction(y_hat, yTrain)
+
+            # Reset the gradients in the network to zero
+            optimizer.zero_grad()
+
+            # Backprop the errors from the loss on this iteration
+            trainLoss.backward(retain_graph=True)
+
+            # Do a weight update step
+            optimizer.step()
+
+            loss = trainLoss.item()
+
+            print(loss)
+
+            # for index, xReview in enumerate(xTrain):
+            #     print("Training Epoch : " + str(index + 1))
+            #     sentiment = yTrain[index]
+            #     output, loss = self(xReview, sentiment, learning_rate)
+            #     current_loss += loss
