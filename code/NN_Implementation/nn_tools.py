@@ -28,3 +28,7 @@ def Accuracy(y, yPredicted):
             correct.append(0)
 
     return sum(correct)/len(correct)
+
+def AccuracyFromTensors(y, yPredicted):
+    correct = (yPredicted == y).float()
+    return correct.sum() / len(correct)
