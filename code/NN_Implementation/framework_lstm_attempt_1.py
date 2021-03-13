@@ -1,6 +1,8 @@
+import collections
 from KaggleWord2VecUtility import KaggleWord2VecUtility
 from nn_lstm_attempt_1 import LSTM
 import nn_tools
+import pyhelpers
 import torch
 import torchtext
 from tqdm import tqdm
@@ -12,6 +14,10 @@ HIDDEN_SIZE = 32
 NUM_LAYERS = 2
 DROPOUT = 0.2
 BIDIRECTIONAL = False
+
+USE_WORD2VEC = True
+WORD2VEC_VECTORS_FILE_PATH = "../../word2vecModels/300features_40minwords_10context_w2vformat.txt"
+WORD2VEC_WORD_FREQ_FILE_PATH = "../../word2vecModels/300features_40minwords_10context_word_freq.json"
 #####################################
 
 
@@ -76,8 +82,21 @@ if __name__ == '__main__':
 
 
     # prep input and output sequences
-    # TODO Don't use GloVe pretrained embeddings. Use word2vec instead
-    text.build_vocab(train_data, dataset_D, dataset_E, min_freq=40, vectors = "glove.6B.300d")
+    if USE_WORD2VEC:
+        print("LOADING Word2Vec Model")
+        
+        vectors = torchtext.vocab.Vectors(WORD2VEC_VECTORS_FILE_PATH)
+
+        word_counter = collections.Counter(pyhelpers.store.load_json(WORD2VEC_WORD_FREQ_FILE_PATH, verbose=True))
+
+        vocab = torchtext.vocab.Vocab(word_counter, vectors=vectors)
+
+        text.vocab = vocab
+    else:
+        # use GloVe pretrained embeddings
+        print ("LOADING GloVe pretrained embeddings")
+        text.build_vocab(train_data, dataset_D, dataset_E, min_freq=40, vectors = "glove.6B.300d")
+        
     label.build_vocab(train_data)
 
     print ("Size of text vocab:", len(text.vocab))
@@ -89,10 +108,12 @@ if __name__ == '__main__':
     train_iterator, dev_iterator = torchtext.data.BucketIterator.splits((train_data, dev_data), batch_size=BATCH_SIZE, sort_key=lambda x: len(x.review), sort_within_batch=True)
 
 
+    print("TRAINING LSTM model")
+    
     # instantiate model
     lstm = LSTM(NUM_FEATURES, HIDDEN_SIZE, NUM_LAYERS, DROPOUT, BIDIRECTIONAL, len(text.vocab))
 
-    # initialize pretrained embeddings (currently from GloVe, but should be from word2vec)
+    # initialize pretrained embeddings from word2vec or GloVe
     lstm.embedding.weight.data.copy_(text.vocab.vectors)
 
     # define optimizer and loss function
