@@ -9,7 +9,8 @@ from gen_Word2Vev import generate_word2vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 import logging
 import pandas as pd
-from KaggleVectorize import getAvgFeatureVecs, getCleanReviews, getDocFeatureVec, getFeatureVec
+from KaggleVectorize import getAvgFeatureVecs, getCleanReviews, getDocFeatureVec, getFeatureList, getSentimentArray
+import math
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',\
     level=logging.INFO)
@@ -28,11 +29,16 @@ print()
 
 # Step 1 Load in data
 print("LOADING data from CSV")
-dataset_A = pd.read_csv( "NLP-Project/dataset/processed/A.tsv", header=0, delimiter="\t", quoting=3 )
-dataset_B = pd.read_csv( "NLP-Project/dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
-dataset_D = pd.read_csv( "NLP-Project/dataset/processed/D.tsv", header=0, delimiter="\t", quoting=3 )
-dataset_E = pd.read_csv( "NLP-Project/dataset/processed/E.tsv", header=0, delimiter="\t", quoting=3 )
+dataset_A = pd.read_csv( "dataset/processed/A.tsv", header=0, delimiter="\t", quoting=3 )
+dataset_B = pd.read_csv( "dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
+dataset_D = pd.read_csv( "dataset/processed/D.tsv", header=0, delimiter="\t", quoting=3 )
+dataset_E = pd.read_csv( "dataset/processed/E.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_A = pd.read_csv( "NLP-Project/dataset/processed/A.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_B = pd.read_csv( "NLP-Project/dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_D = pd.read_csv( "NLP-Project/dataset/processed/D.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_E = pd.read_csv( "NLP-Project/dataset/processed/E.tsv", header=0, delimiter="\t", quoting=3 )
 # dataset_A = pd.read_csv( "../../dataset/processed/A.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_B = pd.read_csv( "../../dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
 # dataset_D = pd.read_csv( "../../dataset/processed/D.tsv", header=0, delimiter="\t", quoting=3 )
 # dataset_E = pd.read_csv( "../../dataset/processed/E.tsv", header=0, delimiter="\t", quoting=3 )
 datasets = [dataset_A, dataset_D, dataset_E]
@@ -67,31 +73,29 @@ else:
 print("FEATURIZING")
 
 # Labels 
-yTrain = torch.Tensor([y_val for y_val in dataset_A["sentiment"]])
+# yTrain = torch.Tensor([y_val for y_val in dataset_A["sentiment"][0:200]])
+yTrain = getSentimentArray(dataset_A["sentiment"], useSmall=None)
 yDev = torch.Tensor([y_val for y_val in dataset_B["sentiment"]])
 
 # Get word2vec
-# xTrain, xTrainLengths = getFeatureVec(getCleanReviews(dataset_A, useSmall=True), word2vec_model, NUM_FEATURES)
-# xTrain = torch.tensor(xTrain)
-
-# Get doc2vec
-xTrainDoc = getDocFeatureVec(getCleanReviews(dataset_A), doc2vec_model, NUM_FEATURES)
-xTrainDoc = torch.tensor(xTrainDoc)
+xTrain = getFeatureList(getCleanReviews(dataset_A, useSmall=False), word2vec_model, NUM_FEATURES, num_splits=8)
 
 # Step 4 Training NN model
 print("TRAINING recurrent nn model")
 r_model = nn_recurrent_model.RNN(input_size=NUM_FEATURES)
-r_model.train(xTrainDoc, yTrain)
+r_model.train(xTrain, yTrain, learning_rate = 0.01, epochs=4)
 
 # Step 5 Evaluate performance
 print()
 print("EVALUATION")
-yTrainingPredicted = r_model.predict(xTrainDoc)
+# yTrain = torch.Tensor([y_val for y_val in dataset_A["sentiment"][0:200]])
+yTrain = torch.Tensor([y_val for y_val in dataset_A["sentiment"]])
+yTrainingPredicted = r_model.predict(xTrain)
 training_accuracy = nn_tools.Accuracy(yTrain, yTrainingPredicted)
 print("Training Accuracy: " + str(training_accuracy))
 
-xDevDoc = getDocFeatureVec(getCleanReviews(dataset_B), doc2vec_model, NUM_FEATURES)
-xDevDoc = torch.tensor(xDevDoc)
-yValidatePredicted = r_model.predict(xDevDoc)
-dev_accuracy = nn_tools.Accuracy(yDev, yValidatePredicted)
-print("Development Accuracy: " + str(dev_accuracy))
+# xDevDoc = getDocFeatureVec(getCleanReviews(dataset_B), doc2vec_model, NUM_FEATURES)
+# xDevDoc = torch.tensor(xDevDoc)
+# yValidatePredicted = r_model.predict(xDevDoc)
+# dev_accuracy = nn_tools.Accuracy(yDev, yValidatePredicted)
+# print("Development Accuracy: " + str(dev_accuracy))

@@ -11,93 +11,111 @@ def timeSince(since):
             return '%dm %ds' % (m, s)
 
 class RNN(nn.Module):
-    def __init__(self, input_size, hidden_size=20, layer=1):
+    def __init__(self, input_size, hidden_size=40, output_size=2):
         super(RNN, self).__init__()
 
         # Save dimensions
         self.hidden_size = hidden_size
-        self.layer = layer
+        self.input_size = input_size
+        self.output_size = output_size
 
-        # RNN layer
-        self.RecurrentOne = nn.RNN(input_size, hidden_size, layer, batch_first=True)
-        torch.nn.init.normal_(self.RecurrentOne.weight_hh_l0, mean=0.0, std=0.01)
-        torch.nn.init.normal_(self.RecurrentOne.weight_ih_l0, mean=0.0, std=0.01)
-          
-        # Output layer
-        linearOut = torch.nn.Linear(hidden_size, 1)
-        torch.nn.init.normal_(linearOut.weight, mean=0.0, std=0.01)
-        self.outputLayer = torch.nn.Sequential(
-            linearOut,
-            torch.nn.Sigmoid()
-            )
+        # self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
+        # self.i2o = nn.Linear(hidden_size, output_size)
+        # torch.nn.init.normal_(self.i2h.weight, mean=0.0, std=0.01)
+        # torch.nn.init.normal_(self.i2o.weight, mean=0.0, std=0.01)
 
-    def forward(self, xReview):
-        
-        hidden0 = torch.zeros(self.layer, 1, self.hidden_size)
-        
-        X, hidden = self.RecurrentOne(xReview, hidden0)
+        self.i2h_node = nn.Linear(input_size + hidden_size, hidden_size)
+        self.i2o_node = nn.Linear(hidden_size, output_size)
+        torch.nn.init.normal_(self.i2h_node.weight, mean=0.0, std=0.01)
+        torch.nn.init.normal_(self.i2o_node.weight, mean=0.0, std=0.01)
 
-        X = self.outputLayer(X)
-        
-        # X = X.view(batch_size, seq_len, self.nb_tags)
-        Y_hat = X
-        return Y_hat
+        self.i2h = torch.nn.Sequential(
+           self.i2h_node,
+           torch.nn.Tanh()
+           )
 
-    def train_review(self, xReview, sentiment, learning_rate):
+        self.i2o = torch.nn.Sequential(
+           self.i2o_node,
+        #    torch.nn.Tanh()
+           )
 
-        self.zero_grad()
-        lossFunction = torch.nn.MSELoss(reduction='mean')
+        self.softmax = nn.LogSoftmax(dim=1)
 
-        output = self(xReview)
+    def forward(self, inputX, hidden):
+        combined = torch.cat((inputX, hidden), 1)
+        hidden = self.i2h(combined)
+        if math.isnan(hidden[0][0]):
+                phoo = 1
+        output = self.i2o(hidden)
+        output = self.softmax(output)
+        if math.isnan(output[0][0]):
+                phoo = 1
+        return output, hidden
 
-        loss = lossFunction(output, sentiment)
-        loss.backward(retain_graph=True)
+    def initHidden(self):
+        return torch.zeros(1, self.hidden_size)
 
-        # Add parameters' gradients to their values, multiplied by learning rate
-        for p in self.parameters():
-            p.data.add_(p.grad.data, alpha=-learning_rate)
+    
+    def train(self, xTrain, sentiment, learning_rate = 0.001, epochs = 1):
 
-        return output, loss.item()
+        sentiment = torch.Tensor(sentiment)
+        sentiment = sentiment.type(torch.LongTensor)
 
-    def train(self, xTrain, yTrain, learning_rate=0.1, epochs = 20):
-        torch.autograd.set_detect_anomaly(True)
-        # Metrics
-        print_every = 5000
-        plot_every = 1000
-
-        # Keep track of losses for plotting
-        current_loss = 0
-        all_losses = []
-        start = time.time()
-
-        # Training
         optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate)
-        lossFunction = torch.nn.MSELoss(reduction='mean')
-        xTrain = xTrain.unsqueeze(0)
-        yTrain = yTrain.unsqueeze(1)
-        yTrain = yTrain.unsqueeze(0)
+        criterion = nn.NLLLoss()
+       
+        for iteration in range(1, epochs + 1):
+            avg_loss = 0
+            avg_count = 0
+            for i, review in enumerate(xTrain):
+                if i == 4845:
+                    phoo = 2
 
-        for iter in range(1, epochs + 1):
-            print("Training Epoch : " + str(iter))
-            y_hat = self(xTrain)
+                hidden = self.initHidden()
 
-            trainLoss = lossFunction(y_hat, yTrain)
+                self.zero_grad()
 
-            # Reset the gradients in the network to zero
-            optimizer.zero_grad()
+                for j, word in enumerate(review):
+                    word_tensor = torch.Tensor(word).unsqueeze(0)
+                    output, hidden = self.forward(word_tensor, hidden)
 
-            # Backprop the errors from the loss on this iteration
-            trainLoss.backward(retain_graph=True)
+                loss = criterion(output, sentiment[i])
+                loss.backward()
+                
+                # Print loss for the review
+                loss_value = loss.item()
+                avg_loss += loss_value
+                avg_count += 1
+                # print(loss_value)
 
-            # Do a weight update step
-            optimizer.step()
+                optimizer.step()
 
-            loss = trainLoss.item()
+                # Add parameters' gradients to their values, multiplied by learning rate
+                # for p in self.parameters():
+                #     p.data.add_(p.grad.data, alpha=-learning_rate)
 
-            print(loss)
+            print(avg_loss/avg_count)
 
-            # for index, xReview in enumerate(xTrain):
-            #     print("Training Epoch : " + str(index + 1))
-            #     sentiment = yTrain[index]
-            #     output, loss = self(xReview, sentiment, learning_rate)
-            #     current_loss += loss
+        return
+
+    def predict(self, xData):
+        yPredict = []
+        for review in xData:   
+                hidden = self.initHidden()
+
+                for j, word in enumerate(review):
+                    word_tensor = torch.Tensor(word).unsqueeze(0)
+                    output, hidden = self.forward(word_tensor, hidden)
+                
+                if output[0][1] > output[0][0]:
+                    yPredict.append(1)
+                else:
+                    yPredict.append(0)
+
+        return yPredict
+
+                
+        
+
+
+

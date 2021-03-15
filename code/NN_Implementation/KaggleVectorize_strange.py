@@ -21,7 +21,7 @@ import logging
 import numpy as np  # Make sure that numpy is imported
 from gensim.models import Word2Vec
 from sklearn.ensemble import RandomForestClassifier
-import math
+
 from KaggleWord2VecUtility import KaggleWord2VecUtility
 
 data_path = '/home/azureuser/nlp_project/code_tut/NLP-Project/dataset/raw/'
@@ -31,19 +31,13 @@ output_path = '/home/azureuser/nlp_project/code_tut/NLP-Project/dataset/output/'
 # ****** Define functions to create average word vectors
 #
 def chunkIt(seq, num):
-    avg = math.ceil(len(seq) / float(num))
+    avg = len(seq) / float(num)
     out = []
     last = 0.0
 
     while last < len(seq):
-        
-        if (last + avg) < len(seq):
-            appending = last + avg
-        else:
-            appending = len(seq)
-
-        out.append(seq[int(last):int(appending)])
-        last = appending
+        out.append(seq[int(last):int(last + avg)])
+        last += avg
 
     return out
 
@@ -164,38 +158,19 @@ def getFeatureList(reviews, model, num_features, num_splits=4):
         #     if word in index2word_set:
         #         review_features[index] = np.add(review_features[index],model[word])
 
-        # Only add one value
-        if len(review) < num_splits:
-            singleVec = featureVec.copy()
+        # Split into 4
+        
+        split = chunkIt(review, num_splits)
+        for section in split:
+            nwords = 0.
+            averageVec = featureVec.copy()
             for index, word in enumerate(section):
                 if word in index2word_set:
-                    singleVec = np.add(singleVec,model[word])
-
-            if math.isnan(singleVec[0]):
-                phoo = 1
-
-            review_features.append(singleVec)
-        # Split into sections     
-        else:
-            split = chunkIt(review, num_splits)
-            for section in split:
-                nwords = 0.
-                averageVec = featureVec.copy()
-                for index, word in enumerate(section):
-                    if word in index2word_set:
-                        nwords = nwords + 1.
-                        averageVec = np.add(averageVec,model[word])
-
-                if nwords < 1:
-                    nwords = 1
-                else:
-
-                    averageVec = np.divide(averageVec,nwords)
-
-                    if math.isnan(averageVec[0]):
-                        phoo = 1
-
-                    review_features.append(averageVec)
+                    nwords = nwords + 1.
+                    averageVec = np.add(averageVec,model[word])
+                
+            featureVec = np.divide(featureVec,nwords)
+            review_features.append(averageVec)
 
         # Increment the counter
         counter = counter + 1.
