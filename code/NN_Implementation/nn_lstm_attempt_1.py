@@ -5,6 +5,8 @@ class LSTM(torch.nn.Module):
                  bidirectional, num_embeddings):
         super().__init__()
 
+        self.bidirectional = bidirectional
+
         # embedding layer
         self.embedding = torch.nn.Embedding(num_embeddings, num_features)
 
@@ -14,9 +16,7 @@ class LSTM(torch.nn.Module):
                                   dropout=dropout, bidirectional=bidirectional)
 
         # output layer with single output
-        # TODO input num features may need to be changed if LSTM is
-        # bidirectional
-        self.outputLayer = torch.nn.Sequential(torch.nn.Linear(hidden_size, 1),
+        self.outputLayer = torch.nn.Sequential(torch.nn.Linear(hidden_size * 2 if bidirectional else hidden_size, 1),
                                                torch.nn.Sigmoid())
 
     def forward(self, text, text_lengths):
@@ -27,8 +27,12 @@ class LSTM(torch.nn.Module):
         
         _, (hidden_state, _) = self.lstm(packed)
 
-        # use the hidden state of the last layer
-        out = hidden_state[-1, :, :]
+        if self.bidirectional:
+            # concat the forward and backward hidden states of the last layer
+            out = torch.cat((hidden_state[-2, :, :], hidden_state[-1, :, :]), dim=1)
+        else:
+            # use the hidden state of the last layer
+            out = hidden_state[-1, :, :]
         
         out = self.outputLayer(out)
 
