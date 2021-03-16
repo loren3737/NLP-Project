@@ -154,48 +154,36 @@ def getFeatureList(reviews, model, num_features, num_splits=4):
         # Try different lengths here
         review_features = []
 
-        # # All values  
-        # # Initialize the list of features
-        # for word in review:
-        #     review_features.append(featureVec.copy())
-
-        # # Determine feature vectors
-        # for index, word in enumerate(review):
-        #     if word in index2word_set:
-        #         review_features[index] = np.add(review_features[index],model[word])
-
         # Only add one value
-        if len(review) < num_splits:
-            singleVec = featureVec.copy()
-            for index, word in enumerate(section):
-                if word in index2word_set:
-                    singleVec = np.add(singleVec,model[word])
-
-            if math.isnan(singleVec[0]):
-                phoo = 1
-
-            review_features.append(singleVec)
-        # Split into sections     
-        else:
-            split = chunkIt(review, num_splits)
-            for section in split:
-                nwords = 0.
-                averageVec = featureVec.copy()
+        if num_splits:
+            if len(review) < num_splits:
+                singleVec = featureVec.copy()
                 for index, word in enumerate(section):
                     if word in index2word_set:
-                        nwords = nwords + 1.
-                        averageVec = np.add(averageVec,model[word])
+                        singleVec = np.add(singleVec,model[word])
+                review_features.append(singleVec)
+            # Split into sections     
+            else:
+                split = chunkIt(review, num_splits)
+                for section in split:
+                    nwords = 0.
+                    averageVec = featureVec.copy()
+                    for index, word in enumerate(section):
+                        if word in index2word_set:
+                            nwords = nwords + 1.
+                            averageVec = np.add(averageVec,model[word])
 
-                if nwords < 1:
-                    nwords = 1
-                else:
-
-                    averageVec = np.divide(averageVec,nwords)
-
-                    if math.isnan(averageVec[0]):
-                        phoo = 1
-
-                    review_features.append(averageVec)
+                    if nwords < 1:
+                        pass
+                    else:
+                        averageVec = np.divide(averageVec,nwords)
+                        review_features.append(averageVec)
+        else:
+             # # All values  
+            # Determine feature vectors
+            for index, word in enumerate(review):
+                if word in index2word_set:
+                    review_features.append(np.add(featureVec.copy(),model[word]))
 
         # Increment the counter
         counter = counter + 1.
@@ -241,11 +229,11 @@ def getDocFeatureVec(reviews, model, num_features):
     return reviewFeatureVecs
 
 
-def getCleanReviews(reviews, useSmall=False, remove_stopwords=True):
+def getCleanReviews(reviews, useSmall=None, remove_stopwords=True):
     clean_reviews = []
 
     if useSmall:
-        for review in reviews["review"][0:200]:
+        for review in reviews["review"][0:useSmall]:
             clean_reviews.append( KaggleWord2VecUtility.review_to_wordlist( review, remove_stopwords=remove_stopwords ))
         return clean_reviews
     else:

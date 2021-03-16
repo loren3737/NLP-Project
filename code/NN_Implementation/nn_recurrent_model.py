@@ -39,7 +39,8 @@ class RNN(nn.Module):
         #    torch.nn.Tanh()
            )
 
-        self.softmax = nn.LogSoftmax(dim=1)
+        # self.softmax = nn.LogSoftmax(dim=1)
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, inputX, hidden):
         combined = torch.cat((inputX, hidden), 1)
@@ -48,8 +49,6 @@ class RNN(nn.Module):
                 phoo = 1
         output = self.i2o(hidden)
         output = self.softmax(output)
-        if math.isnan(output[0][0]):
-                phoo = 1
         return output, hidden
 
     def initHidden(self):
@@ -98,7 +97,7 @@ class RNN(nn.Module):
 
         return
 
-    def predict(self, xData):
+    def predict(self, xData, threshold=0.5):
         yPredict = []
         for review in xData:   
                 hidden = self.initHidden()
@@ -107,7 +106,7 @@ class RNN(nn.Module):
                     word_tensor = torch.Tensor(word).unsqueeze(0)
                     output, hidden = self.forward(word_tensor, hidden)
                 
-                if output[0][1] > output[0][0]:
+                if output[0][1] > threshold:
                     yPredict.append(1)
                 else:
                     yPredict.append(0)
