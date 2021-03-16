@@ -29,10 +29,14 @@ print()
 
 # Step 1 Load in data
 print("LOADING data from CSV")
-dataset_A = pd.read_csv( "NLP-Project/dataset/processed/A.tsv", header=0, delimiter="\t", quoting=3 )
-dataset_B = pd.read_csv( "NLP-Project/dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
-dataset_D = pd.read_csv( "NLP-Project/dataset/processed/D.tsv", header=0, delimiter="\t", quoting=3 )
-dataset_E = pd.read_csv( "NLP-Project/dataset/processed/E.tsv", header=0, delimiter="\t", quoting=3 )
+dataset_A = pd.read_csv( "dataset/processed/A.tsv", header=0, delimiter="\t", quoting=3 )
+dataset_B = pd.read_csv( "dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
+dataset_D = pd.read_csv( "dataset/processed/D.tsv", header=0, delimiter="\t", quoting=3 )
+dataset_E = pd.read_csv( "dataset/processed/E.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_A = pd.read_csv( "NLP-Project/dataset/processed/A.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_B = pd.read_csv( "NLP-Project/dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_D = pd.read_csv( "NLP-Project/dataset/processed/D.tsv", header=0, delimiter="\t", quoting=3 )
+# dataset_E = pd.read_csv( "NLP-Project/dataset/processed/E.tsv", header=0, delimiter="\t", quoting=3 )
 # dataset_A = pd.read_csv( "../../dataset/processed/A.tsv", header=0, delimiter="\t", quoting=3 )
 # dataset_D = pd.read_csv( "../../dataset/processed/D.tsv", header=0, delimiter="\t", quoting=3 )
 # dataset_E = pd.read_csv( "../../dataset/processed/E.tsv", header=0, delimiter="\t", quoting=3 )
@@ -80,16 +84,20 @@ xTrainDoc = getDocFeatureVec(getCleanReviews(dataset_A), doc2vec_model, NUM_FEAT
 xTrainDoc = torch.tensor(xTrainDoc)
 
 # Step 4 Training NN model
-print("TRAINING nn model")
-l_model = nn_model.NeuralNetwork(input_nodes=NUM_FEATURES)
-l_model.train_model_persample(xTrainDoc, yTrain)
-yTrainingPredicted = l_model.predict(xTrainDoc)
-
-print(yTrainingPredicted)
+MODEL_PATH = "feedforward_model.pt"
+doTraining = False
+if doTraining:
+    print("TRAINING nn model")
+    l_model = nn_model.NeuralNetwork(input_nodes=NUM_FEATURES)
+    l_model.train_model_persample(xTrainDoc, yTrain)
+    torch.save(l_model, MODEL_PATH)
+else:
+    l_model = torch.load(MODEL_PATH)
 
 # Step 5 Evaluate performance
 print()
 print("EVALUATION")
+yTrainingPredicted = l_model.predict(xTrainDoc)
 training_accuracy = nn_tools.Accuracy(yTrain, yTrainingPredicted)
 print("Training Accuracy: " + str(training_accuracy))
 
@@ -98,3 +106,9 @@ xDevDoc = torch.tensor(xDevDoc)
 yValidatePredicted = l_model.predict(xDevDoc)
 dev_accuracy = nn_tools.Accuracy(yDev, yValidatePredicted)
 print("Development Accuracy: " + str(dev_accuracy))
+
+# Step 6 Generate ROC curve
+(modelFPRs, modelFNRs, thresholds) = nn_tools.TabulateModelPerformanceForROC(l_model, xDevDoc, yDev)
+print(modelFPRs)
+print(modelFNRs)
+print(thresholds)

@@ -52,12 +52,12 @@ class NeuralNetwork(torch.nn.Module):
 
         return out
 
-    def predict(self, x, classificationThreshold=0.5):
+    def predict(self, x, threshold=0.5):
         # Get the ouput propagations
         yValidatePredicted = self.forward(x)
-        return [ 1 if pred > classificationThreshold else 0 for pred in yValidatePredicted ]
+        return [ 1 if pred > threshold else 0 for pred in yValidatePredicted ]
     
-    def train_model_persample(self, xTrain, yTrain, max_epoch = 8, convergence = 0.001, learning_rate = 1, min_epochs = 2):
+    def train_model_persample(self, xTrain, yTrain, max_epoch = 20, convergence = 0.0001, learning_rate = 1, min_epochs = 6):
         
         #Set training mode
         self.train(mode=False)    
@@ -68,6 +68,7 @@ class NeuralNetwork(torch.nn.Module):
         lastLoss = None
         optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate)
         lossFunction = torch.nn.MSELoss(reduction='mean')
+        loss_across_epoch = []
     
         while not converged and epoch < max_epoch:
             # Do the forward pass
@@ -90,6 +91,7 @@ class NeuralNetwork(torch.nn.Module):
 
             print("Current Loss: " + str(loss))
             print(loss)
+            loss_across_epoch.append(loss)
 
             if lastLoss is None:
                 lastLoss = loss
@@ -101,4 +103,6 @@ class NeuralNetwork(torch.nn.Module):
 
         print("Total Epochs: " + str(epoch))
         self.train(mode=True)
+
+        print(loss_across_epoch)
         

@@ -84,7 +84,7 @@ xDev = getFeatureList(getCleanReviews(dataset_B, useSmall=None), word2vec_model,
 
 # Step 4 Training NN model
 MODEL_PATH = "recurrent_model.pt"
-doTraining = True
+doTraining = False
 if doTraining:
     print("TRAINING recurrent nn model")
     r_model = nn_recurrent_model.RNN(input_size=NUM_FEATURES)
@@ -103,3 +103,6 @@ print("Training Accuracy: " + str(training_accuracy))
 yValidatePredicted = r_model.predict(xDev)
 dev_accuracy = nn_tools.Accuracy(yDev_list, yValidatePredicted)
 print("Development Accuracy: " + str(dev_accuracy))
+
+# Step 6 Generate ROC curve
+(modelFPRs, modelFNRs, thresholds) = nn_tools.TabulateModelPerformanceForROC(r_model, xDev, yDev_list)
