@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 # Baseline metrics
 
 def __CheckEvaluationInput(y, yPredicted):
@@ -124,5 +126,19 @@ def TabulateModelPerformanceForROC(model, xValidate, yValidate):
             FNRs.append(FalseNegativeRate(yValidate, model.predict(xValidate, threshold=set_threshold)))
     except NotImplementedError:
         raise UserWarning("The 'model' parameter must have a 'predict' method that supports using a 'classificationThreshold' parameter with range [ 0 - 1.0 ] to create classifications.")
+
+    return (FPRs, FNRs, thresholds)
+
+
+def TabulateModelPerformanceForROCFromProbabilityEstimates(yValidate, probability_estimates):
+    pointsToEvaluate = 100
+    thresholds = [ x / float(pointsToEvaluate) for x in range(pointsToEvaluate + 1)]
+    FPRs = []
+    FNRs = []
+
+    for set_threshold in tqdm(thresholds):
+        predictions = (probability_estimates >= set_threshold).float()
+        FPRs.append(FalsePositiveRate(yValidate, predictions))
+        FNRs.append(FalseNegativeRate(yValidate, predictions))
 
     return (FPRs, FNRs, thresholds)
