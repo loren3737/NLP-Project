@@ -2,10 +2,11 @@ import torch
 
 class LSTM(torch.nn.Module):
     def __init__(self, num_features, hidden_size, num_layers, dropout,
-                 bidirectional, num_embeddings):
+                 bidirectional, num_embeddings, enforce_sorted=True):
         super().__init__()
 
         self.bidirectional = bidirectional
+        self.enforceSorted = enforce_sorted
 
         # embedding layer
         self.embedding = torch.nn.Embedding(num_embeddings, num_features)
@@ -23,7 +24,7 @@ class LSTM(torch.nn.Module):
         embedded = self.embedding(text)
 
         # pack padding so that all sequences (reviews) are the same length
-        packed = torch.nn.utils.rnn.pack_padded_sequence(embedded, text_lengths, batch_first=True)
+        packed = torch.nn.utils.rnn.pack_padded_sequence(embedded, text_lengths, batch_first=True, enforce_sorted=self.enforceSorted)
         
         _, (hidden_state, _) = self.lstm(packed)
 

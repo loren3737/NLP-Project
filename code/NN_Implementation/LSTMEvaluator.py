@@ -3,6 +3,7 @@ import json
 from KaggleWord2VecUtility import KaggleWord2VecUtility
 from nn_lstm_attempt_1 import LSTM
 import nn_tools
+import pandas as pd
 import torch
 import torchtext
 from tqdm import tqdm
@@ -16,6 +17,8 @@ HIDDEN_SIZE = 64
 NUM_LAYERS = 1
 DROPOUT = 0
 BIDIRECTIONAL = True
+
+ERROR_ANALYSIS = True
 
 
 def getAllProbabilityEstimates(lstm, iterator):
@@ -41,6 +44,7 @@ if __name__ == '__main__':
     print("LOADING data from CSV")
     train_data = torchtext.data.TabularDataset(path="../../dataset/processed/A.tsv", format="tsv", fields=fields, skip_header=True)
     dev_data = torchtext.data.TabularDataset(path="../../dataset/processed/B.tsv", format="tsv", fields=fields, skip_header=True)
+    dev_data_pd = pd.read_csv( "../../dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
 
     print("LOADING Word2Vec Model")
     vectors = torchtext.vocab.Vectors(WORD2VEC_VECTORS_FILE_PATH)
@@ -52,21 +56,41 @@ if __name__ == '__main__':
     label.build_vocab(train_data)
 
     # load iterator
-    dev_iterator = torchtext.data.BucketIterator(dev_data, batch_size=BATCH_SIZE, sort_key=lambda x: len(x.review), train=False, sort_within_batch=True)
+    # don't sort for error analysis
+    dev_iterator = torchtext.data.BucketIterator(dev_data, batch_size=BATCH_SIZE, sort_key=lambda x: len(x.review), train=False, sort=not ERROR_ANALYSIS, sort_within_batch=not ERROR_ANALYSIS)
 
     true_labels = torch.Tensor()
     for batch in dev_iterator:
         true_labels = torch.cat((true_labels, batch.sentiment))
 
+    if ERROR_ANALYSIS:
+        # verify that the reviews are in their original order, so that we can identify false negatives/positives by index
+        true_labels_list = true_labels.int().tolist()
+        sentiments_list = dev_data_pd["sentiment"].tolist()
+        print ("True labels:", true_labels_list)
+        print ("Sentiments:", sentiments_list)
+        print ("Reviews are in original order:", true_labels_list == sentiments_list)
+
     # load the model
-    lstm = LSTM(NUM_FEATURES, HIDDEN_SIZE, NUM_LAYERS, DROPOUT, BIDIRECTIONAL, len(text.vocab))
+    lstm = LSTM(NUM_FEATURES, HIDDEN_SIZE, NUM_LAYERS, DROPOUT, BIDIRECTIONAL, len(text.vocab), enforce_sorted=not ERROR_ANALYSIS)
     lstm.load_state_dict(torch.load(MODEL_FILE_PATH))
 
     # get predictions
     probability_estimates = getAllProbabilityEstimates(lstm, dev_iterator)
 
-    # get ROC data
-    FPRs, FNRs, thresholds = nn_tools.TabulateModelPerformanceForROCFromProbabilityEstimates(true_labels, probability_estimates)
-    print ("FPRs:", FPRs)
-    print ("FNRs:", FNRs)
-    print ("Thresholds:", thresholds)
+    if ERROR_ANALYSIS:
+        rounded_predictions = torch.round(probability_estimates)
+        print ("Confusion matrix:", nn_tools.ConfusionMatrix(true_labels, rounded_predictions))
+
+        # flip for false positives
+        with open("LSTMFalseNegatives.txt", mode="w") as file:
+            print ("False negatives")
+            for i in range(len(true_labels)):
+                if true_labels[i] == 1 and rounded_predictions[i] == 0:
+                    file.write(dev_data_pd["review"][i] + "\n\n")
+    else:
+        # get ROC data
+        FPRs, FNRs, thresholds = nn_tools.TabulateModelPerformanceForROCFromProbabilityEstimates(true_labels, probability_estimates)
+        print ("FPRs:", FPRs)
+        print ("FNRs:", FNRs)
+        print ("Thresholds:", thresholds)
