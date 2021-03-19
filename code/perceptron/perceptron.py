@@ -13,7 +13,7 @@ def train(X, Y, iterations = 1000, eta = 0.1):
   # initialize random weight vector with weights in range [-0.5, 0.55]
   w = np.random.random_sample((X.shape[0], 1)) - 0.5
 
-  track_loss_at = np.unique(np.round(np.logspace(np.log10(0.01), 1, num=100) / 10.0 * iterations))
+  track_loss_at = np.unique(np.append(np.round(np.logspace(np.log10(0.01), 1, num=100) / 10.0 * iterations), iterations-1))
   loss_iterator = iter(track_loss_at)
   next_loss_at = next(loss_iterator)
   losses = []
