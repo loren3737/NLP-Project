@@ -84,7 +84,7 @@ xDev = getFeatureList(getCleanReviews(dataset_B, useSmall=None), word2vec_model,
 
 # Step 4 Training NN model
 MODEL_PATH = "recurrent_model.pt"
-doTraining = False
+doTraining = True
 if doTraining:
     print("TRAINING recurrent nn model")
     r_model = nn_recurrent_model.RNN(input_size=NUM_FEATURES)

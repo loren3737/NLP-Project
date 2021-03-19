@@ -62,6 +62,8 @@ class RNN(nn.Module):
 
         optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate)
         criterion = nn.NLLLoss()
+
+        training_loss = []
        
         for iteration in range(1, epochs + 1):
             avg_loss = 0
@@ -83,6 +85,7 @@ class RNN(nn.Module):
                 
                 # Print loss for the review
                 loss_value = loss.item()
+                training_loss.append(loss_value)
                 avg_loss += loss_value
                 avg_count += 1
                 # print(loss_value)
@@ -94,7 +97,10 @@ class RNN(nn.Module):
                 #     p.data.add_(p.grad.data, alpha=-learning_rate)
 
             print(avg_loss/avg_count)
-
+            
+        print("Loss over iteration")
+        print(training_loss)
+        
         return
 
     def predict(self, xData, threshold=0.5):

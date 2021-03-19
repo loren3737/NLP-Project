@@ -57,7 +57,7 @@ class NeuralNetwork(torch.nn.Module):
         yValidatePredicted = self.forward(x)
         return [ 1 if pred > threshold else 0 for pred in yValidatePredicted ]
     
-    def train_model_persample(self, xTrain, yTrain, max_epoch = 20, convergence = 0.0001, learning_rate = 1, min_epochs = 6):
+    def train_model_persample(self, xTrain, yTrain, max_epoch = 51, convergence = 0.000001, learning_rate = 1, min_epochs = 50):
         
         #Set training mode
         self.train(mode=False)    
@@ -104,5 +104,6 @@ class NeuralNetwork(torch.nn.Module):
         print("Total Epochs: " + str(epoch))
         self.train(mode=True)
 
+        print("TRAINING LOSS")
         print(loss_across_epoch)
         
