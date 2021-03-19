@@ -18,7 +18,7 @@ NUM_LAYERS = 1
 DROPOUT = 0
 BIDIRECTIONAL = True
 
-ERROR_ANALYSIS = True
+ERROR_ANALYSIS = False
 
 
 def getAllProbabilityEstimates(lstm, iterator):
@@ -45,6 +45,7 @@ if __name__ == '__main__':
     train_data = torchtext.data.TabularDataset(path="../../dataset/processed/A.tsv", format="tsv", fields=fields, skip_header=True)
     dev_data = torchtext.data.TabularDataset(path="../../dataset/processed/B.tsv", format="tsv", fields=fields, skip_header=True)
     dev_data_pd = pd.read_csv( "../../dataset/processed/B.tsv", header=0, delimiter="\t", quoting=3 )
+    test_data = torchtext.data.TabularDataset(path="../../dataset/processed/C.tsv", format="tsv", fields=fields, skip_header=True)
 
     print("LOADING Word2Vec Model")
     vectors = torchtext.vocab.Vectors(WORD2VEC_VECTORS_FILE_PATH)
@@ -58,10 +59,15 @@ if __name__ == '__main__':
     # load iterator
     # don't sort for error analysis
     dev_iterator = torchtext.data.BucketIterator(dev_data, batch_size=BATCH_SIZE, sort_key=lambda x: len(x.review), train=False, sort=not ERROR_ANALYSIS, sort_within_batch=not ERROR_ANALYSIS)
+    test_iterator = torchtext.data.BucketIterator(test_data, batch_size=BATCH_SIZE, sort_key=lambda x: len(x.review), train=False, sort_within_batch=True)
 
     true_labels = torch.Tensor()
     for batch in dev_iterator:
         true_labels = torch.cat((true_labels, batch.sentiment))
+
+    true_labels_test = torch.Tensor()
+    for batch in test_iterator:
+        true_labels_test = torch.cat((true_labels_test, batch.sentiment))
 
     if ERROR_ANALYSIS:
         # verify that the reviews are in their original order, so that we can identify false negatives/positives by index
@@ -77,9 +83,11 @@ if __name__ == '__main__':
 
     # get predictions
     probability_estimates = getAllProbabilityEstimates(lstm, dev_iterator)
+    probability_estimates_test = getAllProbabilityEstimates(lstm, test_iterator)
+
+    rounded_predictions = torch.round(probability_estimates)
 
     if ERROR_ANALYSIS:
-        rounded_predictions = torch.round(probability_estimates)
         print ("Confusion matrix:", nn_tools.ConfusionMatrix(true_labels, rounded_predictions))
 
         # flip for false positives
@@ -89,6 +97,11 @@ if __name__ == '__main__':
                 if true_labels[i] == 1 and rounded_predictions[i] == 0:
                     file.write(dev_data_pd["review"][i] + "\n\n")
     else:
+        # accuracies
+        print ("Dev set accuracy:", nn_tools.Accuracy(true_labels, rounded_predictions))
+        if input("Display test set accuracy? y/n ").lower() == "y":
+            print ("Test set accuracy:", nn_tools.Accuracy(true_labels_test, torch.round(probability_estimates_test)))
+
         # get ROC data
         FPRs, FNRs, thresholds = nn_tools.TabulateModelPerformanceForROCFromProbabilityEstimates(true_labels, probability_estimates)
         print ("FPRs:", FPRs)
