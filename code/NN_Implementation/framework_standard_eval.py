@@ -70,13 +70,16 @@ xTestDoc = torch.tensor(xTestDoc)
 #     torch.save(l_model, MODEL_PATH)
 
 l_model = nn_model.NeuralNetwork(input_nodes=runSpecification['num_features'], layer1=runSpecification["h1"], layer2=runSpecification['h2'])
-l_model.train_model_persample(xTrainDoc, yTrain, learning_rate=runSpecification["learning_rate"])
+# l_model.train_model_persample(xTrainDoc, yTrain, learning_rate=runSpecification["learning_rate"])
+l_model.train_model_persample_dev(xTrainDoc, yTrain, xDevDoc, yDev, learning_rate=runSpecification["learning_rate"])
 
 # Step 5 Evaluate performance
 yTrainingPredicted = l_model.predict(xTrainDoc)
 training_accuracy = nn_tools.Accuracy(yTrain, yTrainingPredicted)
 
 yValidatePredicted = l_model.predict(xDevDoc)
+print("Prediction Output")
+print(yValidatePredicted)
 dev_accuracy = nn_tools.Accuracy(yDev, yValidatePredicted)
 
 yTestPredicted = l_model.predict(xTestDoc)
@@ -90,11 +93,11 @@ print(training_accuracy)
 print(dev_accuracy)
 print(test_accuracy)
 
-print("ROC")
-(modelFPRs, modelFNRs, thresholds) = nn_tools.TabulateModelPerformanceForROC(l_model, xDevDoc, yDev)
-print(modelFPRs)
-print(modelFNRs)
-print(thresholds)
+# print("ROC")
+# (modelFPRs, modelFNRs, thresholds) = nn_tools.TabulateModelPerformanceForROC(l_model, xDevDoc, yDev)
+# print(modelFPRs)
+# print(modelFNRs)
+# print(thresholds)
 
 
 

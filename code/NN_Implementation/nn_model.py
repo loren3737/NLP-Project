@@ -1,5 +1,6 @@
 import torch
 import math
+import nn_tools
 
 class NeuralNetwork(torch.nn.Module):
     def __init__(self, input_nodes=300, layer1=20, layer2=10, layer3=4):
@@ -106,4 +107,63 @@ class NeuralNetwork(torch.nn.Module):
 
         print("TRAINING LOSS")
         print(loss_across_epoch)
+
+    def train_model_persample_dev(self, xTrain, yTrain, xDev, yDev, max_epoch = 51, convergence = 0.000001, learning_rate = 1, min_epochs = 50):
+        
+        #Set training mode
+        self.train(mode=False)    
+
+        # Setup training values
+        converged = False
+        epoch = 1
+        lastLoss = None
+        optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate)
+        lossFunction = torch.nn.MSELoss(reduction='mean')
+        loss_across_epoch = []
+        dev_acc_list = []
+
+        while not converged and epoch < max_epoch:
+            # Do the forward pass
+            for i in range(len(xTrain)):            
+                # sample = xTrain[i].unsqueeze(0)
+                sample = xTrain[i].unsqueeze(0)
+                yTrainPredicted = self(sample)
+                trainLoss = lossFunction(yTrainPredicted, yTrain[i])
+
+                # Reset the gradients in the network to zero
+                optimizer.zero_grad()
+
+                # Backprop the errors from the loss on this iteration
+                trainLoss.backward()
+
+                # Do a weight update step
+                optimizer.step()
+
+            loss = trainLoss.item()
+
+            print("Current Loss: " + str(loss))
+            print(loss)
+            loss_across_epoch.append(loss)
+
+            if lastLoss is None:
+                lastLoss = loss
+            else:
+                if abs(lastLoss - loss) < convergence and epoch > min_epochs:
+                    converged = True
+                
+            epoch = epoch + 1
+
+            yPredict = self.predict(xDev)
+            dev_accuracy = nn_tools.Accuracy(yDev, yPredict)
+            dev_acc_list.append(dev_accuracy)
+
+
+        print("Total Epochs: " + str(epoch))
+        self.train(mode=True)
+
+        print("TRAINING LOSS")
+        print(loss_across_epoch)
+
+        print("Dev accuracy")
+        print(dev_acc_list)
         

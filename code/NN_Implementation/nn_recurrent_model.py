@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import time
 import math
+import nn_tools
 
 def timeSince(since):
             now = time.time()
@@ -100,6 +101,62 @@ class RNN(nn.Module):
             
         print("Loss over iteration")
         print(training_loss)
+
+        return
+
+    def train_dev(self, xTrain, sentiment, xDev, yDev, learning_rate = 0.001, epochs = 1):
+
+        sentiment = torch.Tensor(sentiment)
+        sentiment = sentiment.type(torch.LongTensor)
+
+        optimizer = torch.optim.SGD(self.parameters(), lr=learning_rate)
+        criterion = nn.NLLLoss()
+        dev_acc_list = []
+
+        training_loss = []
+       
+        for iteration in range(1, epochs + 1):
+            avg_loss = 0
+            avg_count = 0
+            for i, review in enumerate(xTrain):
+                if i == 4845:
+                    phoo = 2
+
+                hidden = self.initHidden()
+
+                self.zero_grad()
+
+                for j, word in enumerate(review):
+                    word_tensor = torch.Tensor(word).unsqueeze(0)
+                    output, hidden = self.forward(word_tensor, hidden)
+
+                loss = criterion(output, sentiment[i])
+                loss.backward()
+                
+                # Print loss for the review
+                loss_value = loss.item()
+                training_loss.append(loss_value)
+                avg_loss += loss_value
+                avg_count += 1
+                # print(loss_value)
+
+                optimizer.step()
+
+                # Add parameters' gradients to their values, multiplied by learning rate
+                # for p in self.parameters():
+                #     p.data.add_(p.grad.data, alpha=-learning_rate)
+
+            print(avg_loss/avg_count)
+            yPredict = self.predict(xDev)
+            dev_acc = nn_tools.Accuracy(yDev, yPredict)
+            dev_acc_list.append(dev_acc)
+
+            
+        print("Loss over iteration")
+        print(training_loss)
+
+        print("Dev Accuracy")
+        print(dev_acc_list)
         
         return
 

@@ -70,13 +70,17 @@ xTest = getFeatureList(xTestRaw, word2vec_model, runSpecification['num_features'
 # except:
 
 r_model = nn_recurrent_model.RNN(input_size=runSpecification['num_features'], hidden_size=runSpecification['hidden_size'],)
-r_model.train(xTrain, yTrain, learning_rate = 0.01, epochs=30)
+# r_model.train(xTrain, yTrain, learning_rate = 0.01, epochs=30)
+r_model.train_dev(xTrain, yTrain, xDev, yDevList, learning_rate = 0.01, epochs=30)
+
 
 # Step 5 Evaluate performance
 yTrainingPredicted = r_model.predict(xTrain)
 training_accuracy = nn_tools.Accuracy(yTrainList, yTrainingPredicted)
 
 yValidatePredicted = r_model.predict(xDev)
+print("Prediction Output")
+print(yValidatePredicted)
 dev_accuracy = nn_tools.Accuracy(yDevList, yValidatePredicted)
 
 yTestPredicted = r_model.predict(xTest)
@@ -86,11 +90,11 @@ print(training_accuracy)
 print(dev_accuracy)
 print(test_accuracy)
 
-print("ROC")
-(modelFPRs, modelFNRs, thresholds) = nn_tools.TabulateModelPerformanceForROC(r_model, xDev, yDevList)
-print(modelFPRs)
-print(modelFNRs)
-print(thresholds)
+# print("ROC")
+# (modelFPRs, modelFNRs, thresholds) = nn_tools.TabulateModelPerformanceForROC(r_model, xDev, yDevList)
+# print(modelFPRs)
+# print(modelFNRs)
+# print(thresholds)
 
 
 
